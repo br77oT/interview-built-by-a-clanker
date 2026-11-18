@@ -1,6 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 
+/** A price filter, or undefined when absent or not a number (so it is ignored, not NaN). */
+function toPrice(value: string | undefined): number | undefined {
+  if (value === undefined || value.trim() === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export async function personaRoutes(app: FastifyInstance) {
   app.get("/personas", async (request) => {
     const query = request.query as Record<string, string | undefined>;
@@ -8,8 +15,8 @@ export async function personaRoutes(app: FastifyInstance) {
       q: query.q,
       specialty: query.specialty,
       tier: query.tier,
-      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
-      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      minPrice: toPrice(query.minPrice),
+      maxPrice: toPrice(query.maxPrice),
       sort: query.sort,
     };
 

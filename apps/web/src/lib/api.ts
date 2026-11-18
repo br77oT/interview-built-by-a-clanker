@@ -20,7 +20,7 @@ async function request<T>(
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...((options.headers as Record<string, string>) ?? {}),
   };
 
@@ -41,6 +41,9 @@ async function request<T>(
     );
   }
 
+  if (response.status === 204 || response.headers.get("content-length") === "0") {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
 }
 

@@ -6,6 +6,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User, AuthResponse } from "@acme/shared";
 import { api, ApiError } from "./api";
 
@@ -20,6 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem("auth_token"),
@@ -46,16 +48,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, [token]);
 
-  const login = useCallback((response: AuthResponse) => {
-    localStorage.setItem("auth_token", response.token);
-    setToken(response.token);
-    setUser(response.user);
-  }, []);
+  // Cart and favorites are cached per session, not per user: drop them whenever
+  // the user changes so nobody sees the previous user's data.
+  const login = useCallback(
+    (response: AuthResponse) => {
+      queryClient.clear();
+      localStorage.setItem("auth_token", response.token);
+      setToken(response.token);
+      setUser(response.user);
+    },
+    [queryClient],
+  );
 
   const logout = useCallback(() => {
+    queryClient.clear();
+    localStorage.removeItem("auth_token");
     setToken(null);
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>

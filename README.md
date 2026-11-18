@@ -13,9 +13,15 @@ Welcome! This is a monorepo storefront application for browsing and purchasing A
 
 ```bash
 pnpm install
+cp apps/api/.env.example apps/api/.env
+# then set JWT_SECRET in apps/api/.env (at least 32 characters):
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 pnpm build
 pnpm dev
 ```
+
+The API refuses to start without `JWT_SECRET`. A value exported in your shell overrides the `.env` file.
+`pnpm test` runs the API tests (node:test, `apps/api/src/*.test.ts`) and the web tests (Vitest, `apps/web/test/`). The web tests render the real app in jsdom against the real API in-process, so no server needs to be running.
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3001

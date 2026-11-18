@@ -21,11 +21,15 @@ export async function checkoutRoutes(app: FastifyInstance) {
     }
 
     const items: CartItem[] = [];
+    const unavailable: string[] = [];
     let total = 0;
 
     for (const entry of cartEntries) {
       const persona = personasStore.get(entry.personaId);
-      if (!persona) continue;
+      if (!persona) {
+        unavailable.push(entry.id);
+        continue;
+      }
 
       items.push({
         id: entry.id,
@@ -35,6 +39,17 @@ export async function checkoutRoutes(app: FastifyInstance) {
       });
 
       total += persona.price * entry.quantity;
+    }
+
+    // Never place a partial order. Drop the unavailable entries (the cart view
+    // already hides them, so the user could not remove them) and let the user
+    // review the new total before trying again.
+    if (unavailable.length > 0) {
+      for (const id of unavailable) db.cart.remove(id);
+      return reply.status(409).send({
+        error: `${unavailable.length} item(s) in your cart are no longer available and were removed. Review your cart and try again.`,
+        removedItemIds: unavailable,
+      });
     }
 
     const order: Order = {
@@ -48,6 +63,7 @@ export async function checkoutRoutes(app: FastifyInstance) {
     };
 
     db.orders.create(order);
+    db.cart.clearForUser(userId);
 
     return reply.status(201).send(order);
   });
