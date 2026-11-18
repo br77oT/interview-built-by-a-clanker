@@ -29,6 +29,8 @@ function CheckoutPage() {
       setOrder(data);
       queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
+    // A 409 means the server removed unavailable items; show the updated cart.
+    onError: () => queryClient.invalidateQueries({ queryKey: ["cart"] }),
   });
 
   if (!user) {
