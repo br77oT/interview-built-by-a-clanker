@@ -2,17 +2,22 @@ import type { FastifyInstance } from "fastify";
 import { registerSchema, loginSchema, type AuthResponse } from "@acme/shared";
 import { db } from "../db.js";
 import { authenticate } from "../middleware/auth.js";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 let userCounter = 0;
 
-function simpleHash(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return `hashed_${hash}`;
+function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  const hash = scryptSync(password, salt, 64);
+  return `scrypt$${salt.toString("hex")}$${hash.toString("hex")}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  const [scheme, saltHex, hashHex] = stored.split("$");
+  if (scheme !== "scrypt" || !saltHex || !hashHex) return false;
+  const expected = Buffer.from(hashHex, "hex");
+  const actual = scryptSync(password, Buffer.from(saltHex, "hex"), expected.length);
+  return timingSafeEqual(actual, expected);
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -33,7 +38,7 @@ export async function authRoutes(app: FastifyInstance) {
       id,
       username,
       email,
-      passwordHash: simpleHash(password),
+      passwordHash: hashPassword(password),
     });
 
     const token = app.jwt.sign({ id: user.id, email: user.email });
@@ -54,14 +59,14 @@ export async function authRoutes(app: FastifyInstance) {
     const { email, password } = parsed.data;
     const user = db.users.getByEmail(email);
 
-    if (!user || user.passwordHash !== simpleHash(password)) {
+    if (!user || !verifyPassword(password, user.passwordHash)) {
       return reply.status(401).send({ error: "Invalid email or password" });
     }
 
     const token = app.jwt.sign({ id: user.id, email: user.email });
-    const response = {
+    const response: AuthResponse = {
       token,
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email },
     };
 
     return response;

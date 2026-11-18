@@ -83,6 +83,9 @@ function CartPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Cart</h1>
+      {(updateQuantity.isError || removeItem.isError) && (
+        <p className="mb-4 text-sm text-red-600">Could not update your cart. Please try again.</p>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 space-y-4">
@@ -91,6 +94,7 @@ function CartPage() {
               key={item.id}
               item={item}
               onUpdateQuantity={(quantity) =>
+                quantity >= 1 &&
                 updateQuantity.mutate({ itemId: item.id, quantity })
               }
               onRemove={() => removeItem.mutate(item.id)}

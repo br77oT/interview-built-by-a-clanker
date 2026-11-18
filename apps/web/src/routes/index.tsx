@@ -20,8 +20,18 @@ export const Route = createFileRoute("/")({
     q: (search.q as string) || undefined,
     specialty: (search.specialty as string) || undefined,
     tier: (search.tier as string) || undefined,
-    minPrice: search.minPrice ? Number(search.minPrice) : undefined,
-    maxPrice: search.maxPrice ? Number(search.maxPrice) : undefined,
+    minPrice:
+      search.minPrice != null &&
+      search.minPrice !== "" &&
+      !Number.isNaN(Number(search.minPrice))
+        ? Number(search.minPrice)
+        : undefined,
+    maxPrice:
+      search.maxPrice != null &&
+      search.maxPrice !== "" &&
+      !Number.isNaN(Number(search.maxPrice))
+        ? Number(search.maxPrice)
+        : undefined,
     sort: (search.sort as string) || undefined,
   }),
   component: BrowsePage,
@@ -35,12 +45,12 @@ function BrowsePage() {
   if (search.q) queryString.set("q", search.q);
   if (search.specialty) queryString.set("specialty", search.specialty);
   if (search.tier) queryString.set("tier", search.tier);
-  if (search.minPrice) queryString.set("minPrice", String(search.minPrice));
-  if (search.maxPrice) queryString.set("maxPrice", String(search.maxPrice));
+  if (search.minPrice !== undefined) queryString.set("minPrice", String(search.minPrice));
+  if (search.maxPrice !== undefined) queryString.set("maxPrice", String(search.maxPrice));
   if (search.sort) queryString.set("sort", search.sort);
 
   const { data: personas = [], isLoading } = useQuery({
-    queryKey: ["personas"],
+    queryKey: ["personas", queryString.toString()],
     queryFn: () => {
       const qs = queryString.toString();
       return api.get<Persona[]>(`/personas${qs ? `?${qs}` : ""}`);
