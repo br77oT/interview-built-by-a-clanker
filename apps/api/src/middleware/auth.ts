@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyRequest, FastifyReply } from "fastify";
 
 export async function authenticate(
   request: FastifyRequest,
@@ -9,8 +9,4 @@ export async function authenticate(
   } catch {
     return reply.status(401).send({ error: "Unauthorized" });
   }
-}
-
-export function registerAuthHook(app: FastifyInstance) {
-  app.decorate("authenticate", authenticate);
 }

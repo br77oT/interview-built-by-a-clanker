@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["JWT_SECRET"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -13,6 +14,9 @@
       "dependsOn": ["^build"]
     },
     "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
       "dependsOn": ["^build"]
     },
     "clean": {

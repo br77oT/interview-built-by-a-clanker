@@ -79,7 +79,9 @@ export async function authRoutes(app: FastifyInstance) {
       const payload = request.user as { id: string; email: string };
       const user = db.users.getById(payload.id);
       if (!user) {
-        return reply.status(404).send({ error: "User not found" });
+        // Valid signature but the account is gone: treat as unauthenticated so
+        // the client drops the token.
+        return reply.status(401).send({ error: "Unauthorized" });
       }
       return { id: user.id, username: user.username, email: user.email };
     }
