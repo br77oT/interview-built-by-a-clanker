@@ -57,3 +57,41 @@ test("checkout refuses a partial order when an item is no longer available", asy
     personas.set(gone.id, gone);
   }
 });
+
+test("checkout validates the customer details", async () => {
+  const headers = await login("buyer3@example.com");
+  await app.inject({ method: "POST", url: "/cart", headers, payload: { personaId: "p-001", quantity: 1 } });
+  for (const payload of [{}, { name: "", email: "a@b.co" }, { name: "A", email: "nope" }]) {
+    const res = await app.inject({ method: "POST", url: "/checkout", headers, payload });
+    assert.equal(res.statusCode, 400, JSON.stringify(payload));
+  }
+  // a failed checkout leaves the cart alone
+  const cart = await app.inject({ method: "GET", url: "/cart", headers });
+  assert.equal(cart.json().items.length, 1);
+});
+
+test("an empty cart cannot be checked out", async () => {
+  const headers = await login("buyer4@example.com");
+  const res = await app.inject({ method: "POST", url: "/checkout", headers, payload: order });
+  assert.equal(res.statusCode, 400);
+});
+
+test("the order total matches the cart total, to the cent", async () => {
+  const headers = await login("buyer5@example.com");
+  await app.inject({ method: "POST", url: "/cart", headers, payload: { personaId: "p-001", quantity: 3 } });
+  await app.inject({ method: "POST", url: "/cart", headers, payload: { personaId: "p-003", quantity: 1 } });
+  const cartTotal = (await app.inject({ method: "GET", url: "/cart", headers })).json().total;
+  const res = await app.inject({ method: "POST", url: "/checkout", headers, payload: order });
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.json().total, cartTotal);
+  assert.equal(res.json().customerName, order.name);
+});
+
+test("one user's checkout does not touch another user's cart", async () => {
+  const a = await login("buyer6@example.com");
+  const b = await login("buyer7@example.com");
+  await app.inject({ method: "POST", url: "/cart", headers: a, payload: { personaId: "p-001", quantity: 1 } });
+  await app.inject({ method: "POST", url: "/cart", headers: b, payload: { personaId: "p-002", quantity: 1 } });
+  assert.equal((await app.inject({ method: "POST", url: "/checkout", headers: a, payload: order })).statusCode, 201);
+  assert.equal((await app.inject({ method: "GET", url: "/cart", headers: b })).json().items.length, 1);
+});

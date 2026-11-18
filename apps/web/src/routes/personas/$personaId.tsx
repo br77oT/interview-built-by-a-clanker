@@ -175,6 +175,8 @@ function PersonaDetailPage() {
                 <button
                   onClick={() => toggleFavorite.mutate()}
                   disabled={toggleFavorite.isPending}
+                  aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                  aria-pressed={isFavorited}
                   className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   <svg

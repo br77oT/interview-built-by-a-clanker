@@ -21,7 +21,7 @@ pnpm dev
 ```
 
 The API refuses to start without `JWT_SECRET`. A value exported in your shell overrides the `.env` file.
-Run the API tests with `pnpm test`.
+`pnpm test` runs the API tests (node:test, `apps/api/src/*.test.ts`) and the web tests (Vitest, `apps/web/test/`). The web tests render the real app in jsdom against the real API in-process, so no server needs to be running.
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3001
